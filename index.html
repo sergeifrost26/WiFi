@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ёRadio — Wi-Fi</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#d7dce3;--ac:#2b7be4;--ok:#1f9d55;--er:#d6403a;--wa:#b7791f;--in:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#14161a;--card:#1f2329;--tx:#e8e8e8;--mut:#9aa3b2;--bd:#3a414c;--ac:#4c93f0;--ok:#4cd37a;--er:#ff6b6b;--wa:#e6b450;--in:#0f1114}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center}
+.w{width:min(94vw,520px);padding:24px 0 40px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+h1{font-size:22px;margin:0}
+select#lang{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
+.n{font-weight:600;margin:0 0 10px}
+.n span{display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;background:var(--ac);color:#fff;font-size:14px;margin-right:8px}
+button{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:11px 16px;background:var(--ac);color:#fff;font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+button.sec{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+button.big{width:100%;font-size:18px;padding:14px}
+label{display:block;font-size:14px;color:var(--mut);margin:10px 0 4px}
+input[type=text],input[type=password]{width:100%;font:inherit;font-size:18px;padding:10px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--in);color:var(--tx)}
+.row{display:flex;gap:8px;align-items:center}.row input{flex:1}
+.chip{display:inline-block;font-style:normal;font-weight:400;padding:4px 10px;border-radius:99px;font-size:14px;background:var(--bg);border:1px solid var(--bd);color:var(--mut);margin-left:8px}
+.chip.ok{color:var(--ok);border-color:var(--ok)}
+.hint{font-size:13px;color:var(--mut);margin:8px 0 0}
+.warn{font-size:13px;color:var(--wa);margin:8px 0 0}
+#steps{list-style:none;margin:0;padding:0}
+#steps li{padding:5px 0;color:var(--mut);display:flex;gap:10px;align-items:center}
+#steps li i{width:20px;text-align:center;font-style:normal}
+#steps li.run{color:var(--tx)}#steps li.ok{color:var(--ok)}#steps li.er{color:var(--er)}
+#res{margin-top:10px;font-size:17px;font-weight:600}
+#res.ok{color:var(--ok)}#res.er{color:var(--er)}
+#res a{color:var(--ac)}
+#nosup{display:none;background:#fff3cd;color:#664d03;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:15px}
+</style>
+</head>
+<body>
+<div class="w">
+<header><h1 id="t_title"></h1>
+<select id="lang"><option value="ru">Русский</option><option value="uk">Українська</option><option value="en">English</option></select></header>
+<div id="nosup"></div>
+
+<div class="card">
+  <div class="n"><span>1</span><b id="t_s1"></b><em id="chip" class="chip"></em></div>
+  <button id="btnConn"></button>
+  <p class="hint" id="t_h1"></p>
+</div>
+
+<div class="card">
+  <div class="n"><span>2</span><b id="t_s2"></b></div>
+  <label for="ssid" id="t_ssid"></label>
+  <input id="ssid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <label for="pass" id="t_pass"></label>
+  <div class="row"><input id="pass" type="password" autocomplete="off" spellcheck="false"><button class="sec" id="btnShow"></button></div>
+  <p class="warn" id="t_24"></p>
+  <p class="warn" id="t_pc" style="display:none"></p>
+</div>
+
+<div class="card">
+  <div class="n"><span>3</span><b id="t_s3"></b></div>
+  <button class="big" id="btnGo" disabled></button>
+  <ul id="steps" style="margin-top:12px"></ul>
+  <div id="res"></div>
+</div>
+</div>
+
+<script>
+const T={
+ru:{title:"ёRadio — подключение к Wi-Fi",s1:"Подключите радио к компьютеру",s2:"Данные вашей сети Wi-Fi",s3:"Записать в радио",
+ h1:"Вставьте USB-кабель в плату радио (кабель должен быть с передачей данных) и нажмите кнопку, затем выберите порт платы в списке.",
+ conn:"Подключить плату",disc:"Отключить",chipNo:"не подключено",chipYes:"подключено",
+ ssid:"Имя сети (SSID)",pass:"Пароль",show:"Показать",hide:"Скрыть",
+ w24:"Радио работает только в сети 2,4 ГГц. Сеть 5 ГГц плата не видит.",wpc:"Символ % в пароле в старых прошивках может вызвать сбой. Если не получится — подключитесь через точку доступа радио.",
+ go:"Записать и подключить",
+ st:["Порт открыт","Плата отвечает","Данные отправлены","Плата перезагружается и подключается к сети","Подключено к сети"],
+ e_ssid_empty:"Введите имя сети.",e_pass_empty:"Введите пароль (сети без пароля эта команда не поддерживает).",e_ctrl:"В имени и пароле не должно быть табуляции и переводов строки.",
+ e_ssid_long:"Имя сети длиннее 29 байт (кириллица — 2 байта на букву). Прошивка такое не примет.",e_pass_long:"Пароль длиннее 39 байт. Прошивка такое не примет.",e_line_long:"Имя и пароль вместе слишком длинные для прошивки.",
+ e_chars:"Сочетание символов \" , ) в этих данных прошивка принять не может. Используйте точку доступа радио.",
+ e_noport:"Не удалось открыть порт: ",e_noans:"Плата не отвечает. Проверьте кабель (нужен с данными) и выбранный порт. Плата, заблокированная активацией, тоже не отвечает.",
+ e_noack:"Плата не подтвердила приём данных. Попробуйте ещё раз.",
+ e_noconn:"Плата не смогла подключиться к сети. Проверьте имя и пароль и что сеть на 2,4 ГГц, и повторите.",e_timeout:"Не дождался подключения. Посмотрите на экран радио — там должен появиться IP-адрес.",
+ ok:"Готово! Радио подключено. Адрес: ",open:"открыть",
+ nosup:"Эта страница работает в браузерах Chrome или Edge на компьютере (Windows, Mac, Linux). Откройте её там."},
+uk:{title:"ёRadio — підключення до Wi-Fi",s1:"Підключіть радіо до комп'ютера",s2:"Дані вашої мережі Wi-Fi",s3:"Записати в радіо",
+ h1:"Вставте USB-кабель у плату радіо (кабель має передавати дані) і натисніть кнопку, потім оберіть порт плати у списку.",
+ conn:"Підключити плату",disc:"Відключити",chipNo:"не підключено",chipYes:"підключено",
+ ssid:"Назва мережі (SSID)",pass:"Пароль",show:"Показати",hide:"Сховати",
+ w24:"Радіо працює лише в мережі 2,4 ГГц. Мережу 5 ГГц плата не бачить.",wpc:"Символ % у паролі в старих прошивках може спричинити збій. Якщо не вийде — підключіться через точку доступу радіо.",
+ go:"Записати й підключити",
+ st:["Порт відкрито","Плата відповідає","Дані надіслано","Плата перезавантажується й підключається до мережі","Підключено до мережі"],
+ e_ssid_empty:"Введіть назву мережі.",e_pass_empty:"Введіть пароль (мережі без пароля ця команда не підтримує).",e_ctrl:"В імені та паролі не має бути табуляції й переносів рядка.",
+ e_ssid_long:"Назва мережі довша за 29 байт (кирилиця — 2 байти на літеру). Прошивка такого не прийме.",e_pass_long:"Пароль довший за 39 байт. Прошивка такого не прийме.",e_line_long:"Назва й пароль разом задовгі для прошивки.",
+ e_chars:"Поєднання символів \" , ) у цих даних прошивка прийняти не може. Скористайтеся точкою доступу радіо.",
+ e_noport:"Не вдалося відкрити порт: ",e_noans:"Плата не відповідає. Перевірте кабель (потрібен із передачею даних) і обраний порт. Плата, заблокована активацією, теж не відповідає.",
+ e_noack:"Плата не підтвердила прийом даних. Спробуйте ще раз.",
+ e_noconn:"Плата не змогла підключитися до мережі. Перевірте назву й пароль і що мережа на 2,4 ГГц, та повторіть.",e_timeout:"Не дочекався підключення. Подивіться на екран радіо — там має з'явитися IP-адреса.",
+ ok:"Готово! Радіо підключено. Адреса: ",open:"відкрити",
+ nosup:"Ця сторінка працює в браузерах Chrome або Edge на комп'ютері (Windows, Mac, Linux). Відкрийте її там."},
+en:{title:"ёRadio — Wi-Fi setup",s1:"Connect the radio to your computer",s2:"Your Wi-Fi network",s3:"Write to the radio",
+ h1:"Plug a USB cable (a data cable, not charge-only) into the radio board, press the button and pick the board's port from the list.",
+ conn:"Connect board",disc:"Disconnect",chipNo:"not connected",chipYes:"connected",
+ ssid:"Network name (SSID)",pass:"Password",show:"Show",hide:"Hide",
+ w24:"The radio only works on 2.4 GHz networks. It cannot see 5 GHz.",wpc:"A % character in the password can crash older firmware. If it fails, use the radio's own access point instead.",
+ go:"Write and connect",
+ st:["Port opened","Board is responding","Data sent","Board is rebooting and joining the network","Connected to the network"],
+ e_ssid_empty:"Enter the network name.",e_pass_empty:"Enter the password (open networks are not supported by this command).",e_ctrl:"Name and password must not contain tabs or line breaks.",
+ e_ssid_long:"Network name is longer than 29 bytes (Cyrillic = 2 bytes per letter). The firmware will not accept it.",e_pass_long:"Password is longer than 39 bytes. The firmware will not accept it.",e_line_long:"Name and password together are too long for the firmware.",
+ e_chars:"The firmware cannot accept this combination of \" , ) characters. Use the radio's own access point.",
+ e_noport:"Could not open the port: ",e_noans:"The board is not responding. Check the cable (data cable needed) and the selected port. A board locked by activation does not respond either.",
+ e_noack:"The board did not confirm receiving the data. Try again.",
+ e_noconn:"The board could not join the network. Check the name and password and that it is a 2.4 GHz network, then try again.",e_timeout:"Timed out waiting for the connection. Look at the radio's screen — the IP address should appear there.",
+ ok:"Done! The radio is connected. Address: ",open:"open",
+ nosup:"This page works in Chrome or Edge on a computer (Windows, Mac, Linux). Please open it there."}
+};
+
+// <core> — те же правила, что в прошивке (telnet.cpp: wifi.con, Config::parseSsid)
+const MAX_SSID=29, MAX_PASS=39, MAX_LINE=71;
+const blen=s=>new TextEncoder().encode(s).length;
+function validate(ssid,pass){
+  if(!ssid) return 'e_ssid_empty';
+  if(!pass) return 'e_pass_empty';
+  if(/[\t\r\n]/.test(ssid+pass)) return 'e_ctrl';
+  if(blen(ssid)>MAX_SSID) return 'e_ssid_long';
+  if(blen(pass)>MAX_PASS) return 'e_pass_long';
+  if(blen(ssid+'\t'+pass)>MAX_LINE) return 'e_line_long';
+  if((ssid+pass).includes('"') && (ssid.includes(',') || pass.includes(')'))) return 'e_chars';
+  return null;
+}
+function buildCommand(ssid,pass){
+  if(!(ssid+pass).includes('"')) return 'wifi.con("'+ssid+'","'+pass+'")';
+  return 'wifi.con('+ssid+','+pass+')';
+}
+// </core>
+
+const $=id=>document.getElementById(id);
+let lang=(navigator.language||'ru').toLowerCase().startsWith('uk')?'uk':(navigator.language||'').toLowerCase().startsWith('en')?'en':'ru';
+try{const s=localStorage.getItem('lang'); if(s&&T[s]) lang=s;}catch(e){}
+const t=k=>T[lang][k];
+
+function applyLang(){
+  document.documentElement.lang=lang; $('lang').value=lang;
+  $('t_title').textContent=t('title'); document.title=t('title');
+  $('t_s1').textContent=t('s1'); $('t_s2').textContent=t('s2'); $('t_s3').textContent=t('s3');
+  $('t_h1').textContent=t('h1'); $('t_ssid').textContent=t('ssid'); $('t_pass').textContent=t('pass');
+  $('t_24').textContent=t('w24'); $('t_pc').textContent=t('wpc'); $('btnGo').textContent=t('go');
+  $('btnShow').textContent=$('pass').type==='password'?t('show'):t('hide');
+  $('btnConn').textContent=port?t('disc'):t('conn');
+  $('chip').textContent=port?t('chipYes'):t('chipNo');
+  $('nosup').textContent=t('nosup');
+  renderSteps();
+}
+$('lang').onchange=e=>{lang=e.target.value;try{localStorage.setItem('lang',lang)}catch(_){}applyLang();};
+
+// ---------- последовательный порт ----------
+const enc=new TextEncoder(), dec=new TextDecoder();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let port=null, reader=null, writer=null, rx='', busy=false, portInfo=null;
+
+async function openPort(p){
+  await p.open({baudRate:115200});
+  try{await p.setSignals({dataTerminalReady:false,requestToSend:false});}catch(e){}
+  port=p; rx='';
+  writer=p.writable.getWriter();
+  reader=p.readable.getReader();
+  const r=reader;
+  (async()=>{try{for(;;){const {value,done}=await r.read(); if(done)break;
+    if(value){rx+=dec.decode(value,{stream:true}); if(rx.length>16000) rx=rx.slice(-8000);}}}catch(e){}})();
+}
+async function closePort(){
+  try{if(reader){await reader.cancel(); reader.releaseLock();}}catch(e){}
+  try{if(writer){writer.releaseLock();}}catch(e){}
+  try{if(port) await port.close();}catch(e){}
+  reader=writer=port=null;
+}
+async function send(line){rx=''; await writer.write(enc.encode(line+'\n'));}
+async function waitFor(re,ms){const end=Date.now()+ms; for(;;){const m=rx.match(re); if(m) return m; if(Date.now()>end) return null; await sleep(80);}}
+async function handshake(ms){
+  const end=Date.now()+ms;
+  while(Date.now()<end){await send('version'); const m=await waitFor(/##SYS\.VERSION#:\s*(\S+)/,1500); if(m) return m[1];}
+  return null;
+}
+async function queryStatus(){
+  await send('wifi.status');
+  const m=await waitFor(/Status:\s*(\d+)\s+Mode:\s*(\S+)\s+IP:\s*([\d.]+)/,2500);
+  return m?{status:+m[1],mode:m[2],ip:m[3]}:null;
+}
+
+// ---------- интерфейс ----------
+let stepState=[0,0,0,0,0]; // 0 ждёт, 1 идёт, 2 готово, 3 ошибка
+function renderSteps(){
+  const ic=['○','…','✓','✗'], cls=['','run','ok','er'];
+  $('steps').innerHTML=t('st').map((s,i)=>'<li class="'+cls[stepState[i]]+'"><i>'+ic[stepState[i]]+'</i>'+s+'</li>').join('');
+}
+function setStep(i,s){stepState[i]=s; renderSteps();}
+function showRes(html,ok){const r=$('res'); r.className=ok?'ok':'er'; r.innerHTML=html;}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function refreshGo(){$('btnGo').disabled=!port||busy;}
+function updatePc(){$('t_pc').style.display=$('pass').value.includes('%')?'block':'none';}
+
+$('btnShow').onclick=()=>{const p=$('pass'); p.type=p.type==='password'?'text':'password'; $('btnShow').textContent=p.type==='password'?t('show'):t('hide');};
+$('pass').oninput=updatePc;
+
+$('btnConn').onclick=async()=>{
+  if(busy) return;
+  if(port){await closePort(); applyLang(); refreshGo(); return;}
+  try{
+    const p=await navigator.serial.requestPort();
+    try{portInfo=p.getInfo();}catch(e){portInfo=null;}
+    await openPort(p);
+    $('chip').classList.add('ok');
+  }catch(e){
+    if(e&&e.name==='NotFoundError') return;      // окно выбора закрыли
+    showRes(esc(t('e_noport')+(e&&e.message?e.message:e)),false);
+  }
+  applyLang(); refreshGo();
+};
+
+async function pickPort(){
+  const all=await navigator.serial.getPorts();
+  if(portInfo&&portInfo.usbVendorId!==undefined){
+    const same=all.filter(p=>{try{const i=p.getInfo();return i.usbVendorId===portInfo.usbVendorId&&i.usbProductId===portInfo.usbProductId;}catch(e){return false;}});
+    if(same.length) return same[0];
+  }
+  return all[0]||null;
+}
+
+$('btnGo').onclick=async()=>{
+  if(busy||!port) return;
+  const ssid=$('ssid').value, pass=$('pass').value;
+  stepState=[0,0,0,0,0]; renderSteps(); $('res').textContent=''; $('res').className='';
+  const err=validate(ssid,pass);
+  if(err){showRes(esc(t(err)),false); return;}
+  busy=true; refreshGo();
+  try{
+    setStep(0,2); setStep(1,1);
+    const ver=await handshake(15000);
+    if(!ver){setStep(1,3); showRes(esc(t('e_noans')),false); return;}
+    setStep(1,2); setStep(2,1);
+    await send(buildCommand(ssid,pass));
+    const ack=await waitFor(/REBOOTING/,4000);
+    if(!ack){setStep(2,3); showRes(esc(t('e_noack')),false); return;}
+    setStep(2,2); setStep(3,1);
+    await closePort(); $('chip').classList.remove('ok'); applyLang();
+    await sleep(3000);
+    const end=Date.now()+70000; let result=null;
+    while(Date.now()<end && !result){
+      try{
+        if(!port){const p=await pickPort(); if(p) await openPort(p);}
+        if(port){
+          const st=await queryStatus();
+          if(st){
+            if(st.mode==='WIFI_STA'&&st.ip!=='0.0.0.0'&&st.status===3) result={ok:true,ip:st.ip};
+            else if(st.mode==='WIFI_AP') result={ok:false};
+          }
+        }
+      }catch(e){await closePort();}
+      if(!result) await sleep(2000);
+    }
+    if(result&&result.ok){
+      setStep(3,2); setStep(4,2);
+      showRes(esc(t('ok'))+'<a href="http://'+result.ip+'/" target="_blank" rel="noopener">http://'+result.ip+'</a>',true);
+    }else if(result){
+      setStep(3,3); showRes(esc(t('e_noconn')),false);
+    }else{
+      setStep(3,3); showRes(esc(t('e_timeout')),false);
+    }
+  }catch(e){
+    showRes(esc(e&&e.message?e.message:e),false);
+  }finally{
+    busy=false;
+    if(port) $('chip').classList.add('ok'); else $('chip').classList.remove('ok');
+    applyLang(); refreshGo();
+  }
+};
+
+if(!('serial' in navigator)){$('nosup').style.display='block'; $('btnConn').disabled=true;}
+applyLang();
+</script>
+</body>
+</html>
